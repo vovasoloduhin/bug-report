@@ -46,3 +46,4 @@ dl{margin:0 0 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}dt{c
 .timeline li::before{content:"";position:absolute;left:-6px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--line)}
 .tl-comment{background:#faf8f4;border-radius:0 10px 10px 0;margin-bottom:6px}.tl-comment::before{background:var(--accent)!important}
 .tl-comment p{margin:4px 0 0}.tl-event{color:var(--muted);font-size:14px}
+.col{min-width:0}
