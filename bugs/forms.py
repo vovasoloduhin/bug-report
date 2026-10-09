@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from teams.models import Team
 from .models import Bug
+from .models import Comment
 
 User = get_user_model()
 
@@ -34,3 +35,10 @@ class BugUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["assignee"].queryset = User.objects.filter(memberships__team=self.instance.team)
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ("text",)
+        labels = {"text": ""}
+        widgets = {"text": forms.Textarea(attrs={"rows": 3, "placeholder": "Напишіть коментар..."})}
