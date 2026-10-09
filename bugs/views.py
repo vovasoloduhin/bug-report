@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from teams.models import Membership, Team
 from .forms import BugForm, BugUpdateForm, CommentForm
-from .models import Bug, Notification, STATUS
+from .models import Bug, BugEvent, Comment, Notification, STATUS
 
 def notify(user, bug, text, actor):
     if user and user != actor:
@@ -46,7 +46,7 @@ def bug_create(request):
 @login_required
 def bug_detail(request, pk):
     bug = get_object_or_404(visible_bugs(request.user), pk=pk)
-    form = BugUpdateForm(request.POST or None, instance=bug)
+    form = BugUpdateForm(instance=bug)
     cform = CommentForm()
     if request.method == "POST" and "comment" in request.POST:
         cform = CommentForm(request.POST)
@@ -60,13 +60,21 @@ def bug_detail(request, pk):
     elif request.method == "POST":
         form = BugUpdateForm(request.POST, instance=bug)
         if form.is_valid():
-            old_assignee, old_status = Bug.objects.values_list("assignee_id", "status").distinct()
+            old_assignee, old_status = Bug.objects.values_list("assignee_id", "status").get(pk=pk)
+            bug = form.save()
             if bug.assignee_id != old_assignee:
+                BugEvent.objects.create(bug=bug, actor=request.user,
+                    text=f"призначив відповідального: {bug.assignee.display_name if bug.assignee else '—'}")
                 notify(bug.assignee, bug, f"Вам призначено {bug.code}: {bug.title}", request.user)
             if bug.status != old_status:
+                BugEvent.objects.create(bug=bug, actor=request.user,
+                    text=f"змінив статус на «{bug.get_status_display()}»")
                 notify(bug.reporter, bug, f"Статус {bug.code} змінено на «{bug.get_status_display()}»", request.user)
             return redirect(bug)
-        return render(request, "bugs/detail.html", {"bug": bug, "form": form})
+    timeline = sorted(
+        list(bug.comments.select_related("author")) + list(bug.events.select_related("actor")),
+        key=lambda i: i.created_at)
+    return render(request, "bugs/detail.html", {"bug": bug, "form": form, "cform": cform, "timeline": timeline})
 
 @login_required
 def suggest_assignee(request):
