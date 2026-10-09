@@ -44,3 +44,23 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+class Comment(models.Model):
+    bug = models.ForeignKey(Bug, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    text = models.TextField("Коментар")
+    created_at = models.DateTimeField(auto_now_add=True)
+    kind = "comment"
+
+    class Meta:
+        ordering = ["-created_at"]
+
+class BugEvent(models.Model):
+    bug = models.ForeignKey(Bug, on_delete=models.CASCADE, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    text = models.CharField(max_length=300)
+    created_at = models.DateTimeField(auto_now_add=True)
+    kind = "event"
+
+    class Meta:
+        ordering = ["-created_at"]
