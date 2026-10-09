@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from teams.models import Membership, Team
-from .forms import BugForm, BugUpdateForm
+from .forms import BugForm, BugUpdateForm, CommentForm
 from .models import Bug, Notification, STATUS
 
 def notify(user, bug, text, actor):
@@ -47,15 +47,26 @@ def bug_create(request):
 def bug_detail(request, pk):
     bug = get_object_or_404(visible_bugs(request.user), pk=pk)
     form = BugUpdateForm(request.POST or None, instance=bug)
-    if request.method == "POST" and form.is_valid():
-        old_assignee, old_status = Bug.objects.values_list("assignee_id", "status").get(pk=pk)
-        bug = form.save()
-        if bug.assignee_id != old_assignee:
-            notify(bug.assignee, bug, f"Вам призначено {bug.code}: {bug.title}", request.user)
-        if bug.status != old_status:
-            notify(bug.reporter, bug, f"Статус {bug.code} змінено на «{bug.get_status_display()}»", request.user)
-        return redirect(bug)
-    return render(request, "bugs/detail.html", {"bug": bug, "form": form})
+    cform = CommentForm()
+    if request.method == "POST" and "comment" in request.POST:
+        cform = CommentForm(request.POST)
+        if cform.is_valid():
+            c = cform.save(commit=False)
+            c.bug, c.author = bug, request.user
+            c.save()
+            for u in {bug.reporter, bug.assignee} - {None}:
+                notify(u, bug, f"{request.user.display_name} прокоментував {bug.code}: {c.text[:100]}", request.user)
+            return redirect(bug)
+    elif request.method == "POST":
+        form = BugUpdateForm(request.POST, instance=bug)
+        if form.is_valid():
+            old_assignee, old_status = Bug.objects.values_list("assignee_id", "status").distinct()
+            if bug.assignee_id != old_assignee:
+                notify(bug.assignee, bug, f"Вам призначено {bug.code}: {bug.title}", request.user)
+            if bug.status != old_status:
+                notify(bug.reporter, bug, f"Статус {bug.code} змінено на «{bug.get_status_display()}»", request.user)
+            return redirect(bug)
+        return render(request, "bugs/detail.html", {"bug": bug, "form": form})
 
 @login_required
 def suggest_assignee(request):
