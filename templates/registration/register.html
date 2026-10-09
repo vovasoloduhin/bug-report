@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Реєстрація{% endblock %}
+{% block auth %}
+<form method="post" class="card auth-card">
+  <h1>Реєстрація</h1>{% csrf_token %}
+  {{ form.as_div }}
+  <button class="btn">Створити акаунт</button>
+  <p class="muted">Вже є акаунт? <a href="{% url 'login' %}">Увійти</a></p>
+</form>
+{% endblock %}

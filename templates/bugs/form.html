@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Новий баг{% endblock %}
+{% block content %}
+<header class="head"><h1>Новий баг</h1></header>
+<form method="post" class="card form" id="bug-form" data-suggest="{% url 'suggest_assignee' %}">
+  {% csrf_token %}{{ form.as_div }}
+  <button class="btn">Створити і повідомити відповідального</button>
+</form>
+{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/bug_form.js' %}"></script>{% endblock %}

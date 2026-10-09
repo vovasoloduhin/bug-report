@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Нова команда{% endblock %}
+{% block content %}
+<header class="head"><h1>Нова команда</h1></header>
+<form method="post" class="card form">{% csrf_token %}{{ form.as_div }}<button class="btn">Створити</button></form>
+{% endblock %}

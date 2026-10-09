@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }}{% endblock %}
+{% block content %}
+<header class="head"><div><h1>{{ team.name }}</h1><p class="muted">{{ team.description }}</p></div></header>
+<div class="card table-wrap"><table>
+  <tr><th>Учасник</th><th>Відповідає за</th><th>Знайшов багів</th><th>Відкритих на ньому</th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.m.user.display_name }}</td><td><span class="badge">{{ r.m.get_area_display }}</span></td><td>{{ r.found }}</td><td>{{ r.open }}</td></tr>
+  {% endfor %}
+</table></div>
+{% if is_owner %}
+<form method="post" action="{% url 'add_member' team.pk %}" class="card form">
+  <h3>Додати учасника / змінити зону</h3>{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button>
+</form>
+{% endif %}
+{% endblock %}

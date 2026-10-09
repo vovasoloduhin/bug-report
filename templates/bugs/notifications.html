@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Повідомлення{% endblock %}
+{% block content %}
+<header class="head"><h1>Повідомлення</h1></header>
+<div class="card">
+  {% for n in items %}
+  <a class="notif {% if not n.is_read %}unread{% endif %}" href="{% url 'notification_open' n.pk %}">
+    <span class="code">{{ n.bug.code }}</span> {{ n.text }}
+    <span class="muted small">{{ n.created_at|date:"d.m H:i" }}</span>
+  </a>
+  {% empty %}<p class="muted">Повідомлень поки немає</p>{% endfor %}
+</div>
+{% endblock %}

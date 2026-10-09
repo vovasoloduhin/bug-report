@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Команди{% endblock %}
+{% block content %}
+<header class="head"><h1>Команди</h1><a class="btn" href="{% url 'team_create' %}">+ Нова команда</a></header>
+<div class="cards">
+  {% for t in teams %}
+  <a class="card team" href="{% url 'team_detail' t.pk %}"><h3>{{ t.name }}</h3><p class="muted">{{ t.description|truncatechars:90 }}</p></a>
+  {% empty %}<p class="muted">Ви ще не в жодній команді</p>{% endfor %}
+</div>
+{% endblock %}

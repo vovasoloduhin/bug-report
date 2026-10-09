@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ bug.code }}{% endblock %}
+{% block content %}
+<header class="head">
+  <div><span class="code big">{{ bug.code }}</span><h1>{{ bug.title }}</h1></div>
+  <div><span class="badge sev-{{ bug.severity }}">{{ bug.get_severity_display }}</span>
+       <span class="badge st-{{ bug.status }}">{{ bug.get_status_display }}</span></div>
+</header>
+<div class="grid">
+  <section class="card">
+    <h3>Кроки відтворення</h3><p class="pre">{{ bug.steps }}</p>
+    {% if bug.expected %}<h3>Очікувано</h3><p class="pre">{{ bug.expected }}</p>{% endif %}
+    {% if bug.actual %}<h3>Фактично</h3><p class="pre">{{ bug.actual }}</p>{% endif %}
+  </section>
+  <aside class="card">
+    <dl>
+      <dt>Команда</dt><dd>{{ bug.team.name }}</dd>
+      <dt>Зона</dt><dd>{{ bug.get_area_display }}</dd>
+      <dt>Знайшов</dt><dd>{{ bug.reporter.display_name }}</dd>
+      <dt>Створено</dt><dd>{{ bug.created_at|date:"d.m.Y H:i" }}</dd>
+    </dl>
+    <form method="post">{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button></form>
+  </aside>
+</div>
+{% endblock %}
