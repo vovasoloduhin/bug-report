@@ -1,38 +1,16 @@
 {% extends "base.html" %}
-{% block title %}{{ bug.code }}{% endblock %}
+{% block title %}{{ team.name }}{% endblock %}
 {% block content %}
-<header class="head">
-  <div><span class="code big">{{ bug.code }}</span><h1>{{ bug.title }}</h1></div>
-  <div><span class="badge sev-{{ bug.severity }}">{{ bug.get_severity_display }}</span>
-       <span class="badge st-{{ bug.status }}">{{ bug.get_status_display }}</span></div>
-</header>
-<div class="grid">
-  <section class="card">
-    <h3>Кроки відтворення</h3><p class="pre">{{ bug.steps }}</p>
-    {% if bug.expected %}<h3>Очікувано</h3><p class="pre">{{ bug.expected }}</p>{% endif %}
-    {% if bug.actual %}<h3>Фактично</h3><p class="pre">{{ bug.actual }}</p>{% endif %}
-  </section>
-  <section class="card">
-    <h3>Обговорення та історія</h3>
-    <ul class="timeline">
-    {% for i in timeline %}
-      {% if i.kind == "comment" %}
-      <li class="tl-comment"><b>{{ i.author.display_name }}</b> <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span><p class="pre">{{ i.text }}</p></li>
-      {% else %}
-      <li class="tl-event"><b>{{ i.actor.display_name }}</b> {{ i.text }} <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span></li>
-      {% endif %}
-    {% empty %}<li class="muted">Поки порожньо</li>{% endfor %}
-    </ul>
-    <form method="post">{% csrf_token %}<input type="hidden" name="comment" value="1">{{ cform.as_div }}<button class="btn">Додати коментар</button></form>
-  </section>
-  <aside class="card">
-    <dl>
-      <dt>Команда</dt><dd>{{ bug.team.name }}</dd>
-      <dt>Зона</dt><dd>{{ bug.get_area_display }}</dd>
-      <dt>Знайшов</dt><dd>{{ bug.reporter.display_name }}</dd>
-      <dt>Створено</dt><dd>{{ bug.created_at|date:"d.m.Y H:i" }}</dd>
-    </dl>
-    <form method="post">{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button></form>
-  </aside>
-</div>
+<header class="head"><div><h1>{{ team.name }}</h1><p class="muted">{{ team.description }}</p></div></header>
+<div class="card table-wrap"><table>
+  <tr><th>Учасник</th><th>Відповідає за</th><th>Знайшов багів</th><th>Відкритих на ньому</th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.m.user.display_name }}</td><td><span class="badge">{{ r.m.get_area_display }}</span></td><td>{{ r.found }}</td><td>{{ r.open }}</td></tr>
+  {% endfor %}
+</table></div>
+{% if is_owner %}
+<form method="post" action="{% url 'add_member' team.pk %}" class="card form">
+  <h3>Додати учасника / змінити зону</h3>{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button>
+</form>
+{% endif %}
 {% endblock %}
