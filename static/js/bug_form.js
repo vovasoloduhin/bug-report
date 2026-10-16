@@ -1,4 +1,4 @@
-// Підставляє відповідального за обрану зону, поки користувач не обрав його вручну
+
 (() => {
   const form = document.getElementById("bug-form");
   const team = form.querySelector("[name=team]");
@@ -15,3 +15,5 @@
   team.addEventListener("change", suggest);
   area.addEventListener("change", suggest);
 })();
+
+//Підставляє відповідального за обрану зону, поки користувач не обрав його вручну
