@@ -14,6 +14,20 @@
     {% if bug.actual %}<h3>Фактично</h3><p class="pre">{{ bug.actual }}</p>{% endif %}
   </section>
   <section class="card">
+    <h3>Вкладення</h3>
+    <div class="files">
+    {% for a in bug.attachments.all %}
+      {% if a.is_image %}<a class="thumb" href="{% url 'attachment' a.pk %}" target="_blank"><img src="{% url 'attachment' a.pk %}" alt="{{ a.filename }}"></a>
+      {% else %}<a class="filelink" href="{% url 'attachment' a.pk %}">📎 {{ a.filename }}</a>{% endif %}
+    {% empty %}<span class="muted">Немає вкладень</span>{% endfor %}
+    </div>
+    <form method="post" enctype="multipart/form-data" class="upload-row">{% csrf_token %}
+      <input type="hidden" name="upload" value="1">
+      <input type="file" name="files" multiple required accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log">
+      <button class="btn">Завантажити</button>
+    </form>
+  </section>
+  <section class="card">
     <h3>Обговорення та історія</h3>
     <ul class="timeline">
     {% for i in timeline %}

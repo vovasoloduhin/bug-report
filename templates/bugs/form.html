@@ -2,8 +2,11 @@
 {% block title %}Новий баг{% endblock %}
 {% block content %}
 <header class="head"><h1>Новий баг</h1></header>
-<form method="post" class="card form" id="bug-form" data-suggest="{% url 'suggest_assignee' %}">
+<form method="post" class="card form" id="bug-form" enctype="multipart/form-data" data-suggest="{% url 'suggest_assignee' %}">
   {% csrf_token %}{{ form.as_div }}
+  <div class="upload"><label>Скріншоти / файли</label>
+    <input type="file" name="files" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log">
+    <span class="helptext">До 5 МБ кожен: png, jpg, gif, webp, pdf, txt, log</span></div>
   <button class="btn">Створити і повідомити відповідального</button>
 </form>
 {% endblock %}
