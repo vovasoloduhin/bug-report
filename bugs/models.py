@@ -53,9 +53,10 @@ class Comment(models.Model):
     kind = "comment"
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["created_at"]
 
 class BugEvent(models.Model):
+    """Запис в історії змін: створення, зміна статусу, зміна відповідального."""
     bug = models.ForeignKey(Bug, on_delete=models.CASCADE, related_name="events")
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     text = models.CharField(max_length=300)
@@ -63,4 +64,18 @@ class BugEvent(models.Model):
     kind = "event"
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["created_at"]
+
+class Attachment(models.Model):
+    bug = models.ForeignKey(Bug, on_delete=models.CASCADE, related_name="attachments")
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    file = models.FileField(upload_to="attachments/%Y/%m/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def filename(self):
+        return self.file.name.rsplit("/", 1)[-1]
+
+    @property
+    def is_image(self):
+        return self.filename.lower().rsplit(".", 1)[-1] in ("png", "jpg", "jpeg", "gif", "webp")

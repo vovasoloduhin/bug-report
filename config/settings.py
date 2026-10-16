@@ -42,3 +42,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+MEDIA_ROOT = BASE_DIR / "media"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
