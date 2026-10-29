@@ -7,6 +7,17 @@ SEVERITY = [("low", "Низька"), ("medium", "Середня"), ("high", "В�
 STATUS = [("new", "Новий"), ("in_progress", "У роботі"), ("fixed", "Виправлено"),
           ("closed", "Закрито"), ("wontfix", "Не буде виправлено")]
 
+class Tag(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="tags")
+    name = models.CharField("Тег", max_length=30)
+
+    class Meta:
+        unique_together = ("team", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"#{self.name}"
+
 class Bug(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="bugs", verbose_name="Команда")
     title = models.CharField("Короткий опис", max_length=200)
@@ -19,11 +30,21 @@ class Bug(models.Model):
     reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="reported_bugs")
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                                  on_delete=models.SET_NULL, related_name="assigned_bugs", verbose_name="Відповідальний")
+    tags = models.ManyToManyField(Tag, blank=True, related_name="bugs", verbose_name="Теги")
+    # Усе, по чому шукаємо, у нижньому регістрі. SQLite порівнює без урахування регістру
+    # лише ASCII, тому для кирилиці `icontains` не працює — шукаємо по заздалегідь «опущеному» тексту.
+    search_text = models.TextField(blank=True, default="", editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
+
+    def rebuild_search_text(self):
+        parts = [self.code, self.title, self.steps, self.expected, self.actual]
+        parts += self.tags.values_list("name", flat=True)
+        parts += self.comments.values_list("text", flat=True)
+        Bug.objects.filter(pk=self.pk).update(search_text="\n".join(parts).lower())
 
     @property
     def code(self):

@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Вхід{% endblock %}
 {% block auth %}
-<form method="post" class="card auth-card">
-  <h1>Вхід</h1>{% csrf_token %}
-  {{ form.as_div }}
-  <button class="btn">Увійти</button>
-  <p class="muted">Немає акаунта? <a href="{% url 'register' %}">Реєстрація</a></p>
-</form>
+<div class="auth-wrap">
+  <div class="auth-brand"><span class="dot"></span>Bugtracker</div>
+  <form method="post" class="card auth-card form">
+    <h1>Вхід</h1><p class="sub">Увійдіть, щоб побачити баги вашої команди.</p>{% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {{ form.as_div }}
+    <button class="btn block">Увійти</button>
+    <p class="muted small auth-alt">Немає акаунта? <a href="{% url 'register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Реєстрація</a></p>
+  </form>
+</div>
 {% endblock %}

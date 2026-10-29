@@ -1,0 +1,41 @@
+<section class="card rail-card">
+  <div class="rail-title"><h3>Огляд</h3><span class="muted small">Усього: {{ panel.total }}</span></div>
+  <div class="stats">
+    <div class="stat"><b>{{ panel.open }}</b><span>Відкриті</span></div>
+    <div class="stat stat-hot" title="Відкриті баги з важливістю «Висока» або «Критична»"><b>{{ panel.urgent }}</b><span>Термінові</span></div>
+    <div class="stat"><b>{{ panel.resolved }}</b><span>Вирішені</span></div>
+  </div>
+  <div class="bar" role="img" aria-label="Розподіл багів за статусами">
+    {% for s in panel.statuses %}{% if s.n %}<span class="seg seg-{{ s.key }}" style="flex-grow:{{ s.n }}" title="{{ s.label }}: {{ s.n }}"></span>{% endif %}{% endfor %}
+  </div>
+  <ul class="legend">
+    {% for s in panel.statuses %}
+    <li><a href="{% url 'bug_list' %}?status={{ s.key }}"><i class="seg-dot seg-{{ s.key }}"></i><span>{{ s.label }}</span><b>{{ s.n }}</b></a></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card rail-card">
+  <div class="rail-title">
+    <h3>Мені призначено</h3>
+    {% if panel.mine_total %}<a class="small accent-link" href="{% url 'bug_list' %}?scope=mine">Усі {{ panel.mine_total }}</a>{% endif %}
+  </div>
+  {% for b in panel.mine %}
+  <a class="mini" href="{{ b.get_absolute_url }}">
+    <span class="mini-top"><span class="code small">{{ b.code }}</span><span class="badge sev-{{ b.severity }}">{{ b.get_severity_display }}</span></span>
+    <span class="mini-title">{{ b.title }}</span>
+  </a>
+  {% empty %}<p class="muted small note">Відкритих багів на вас немає.</p>{% endfor %}
+</section>
+
+<section class="card rail-card">
+  <div class="rail-title"><h3>Остання активність</h3></div>
+  <ul class="feed">
+    {% for i in panel.feed %}
+    <li>
+      <div><b>{{ i.who }}</b> {{ i.text }} <a class="code small" href="{{ i.bug.get_absolute_url }}">{{ i.bug.code }}</a></div>
+      <div class="muted small">{{ i.at|date:"d.m H:i" }}</div>
+    </li>
+    {% empty %}<li class="muted small">Подій поки немає.</li>{% endfor %}
+  </ul>
+</section>

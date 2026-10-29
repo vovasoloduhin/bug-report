@@ -4,35 +4,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#171922">
   <title>{% block title %}Bugtracker{% endblock %} · Bugtracker</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23e4572e'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body>
+<body{% if user.is_authenticated %} data-poll="{% url 'notifications_poll' %}" data-last-id="{{ last_notification_id }}"{% endif %}>
 {% if user.is_authenticated %}
+{# Спрайт іконок. Використання: svg.ic > use[href="#i-назва"] #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M16 4.6a3.5 3.5 0 0 1 0 6.8M22 21v-1a5 5 0 0 0-3.5-4.8"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5zM22 9l-6 6M16 9l6 6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m10.29 3.86-8.18 14a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71-3l-8.18-14a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+{% with nav_view=request.resolver_match.url_name nav_scope=request.GET.scope %}
 <div class="shell">
   <aside class="side">
     <a class="brand" href="{% url 'bug_list' %}"><span class="dot"></span>Bugtracker</a>
-    <nav>
-      <a href="{% url 'bug_list' %}">Усі баги</a>
-      <a href="{% url 'bug_list' %}?scope=mine">Мені призначені</a>
-      <a href="{% url 'bug_list' %}?scope=reported">Знайдені мною</a>
-      <a href="{% url 'team_list' %}">Команди</a>
-      <a href="{% url 'notifications' %}">Повідомлення{% if unread_count %}<span class="count">{{ unread_count }}</span>{% endif %}</a>
+    <nav aria-label="Головне меню">
+      <a href="{% url 'bug_list' %}"{% if nav_view == 'bug_list' and not nav_scope %} class="active" aria-current="page"{% endif %}><svg class="ic"><use href="#i-list"/></svg><span>Усі баги</span></a>
+      <a href="{% url 'bug_list' %}?scope=mine"{% if nav_view == 'bug_list' and nav_scope == 'mine' %} class="active" aria-current="page"{% endif %}><svg class="ic"><use href="#i-user"/></svg><span>Мені призначені</span></a>
+      <a href="{% url 'bug_list' %}?scope=reported"{% if nav_view == 'bug_list' and nav_scope == 'reported' %} class="active" aria-current="page"{% endif %}><svg class="ic"><use href="#i-flag"/></svg><span>Знайдені мною</span></a>
+      <a href="{% url 'team_list' %}"{% if request.path|slice:":7" == "/teams/" %} class="active" aria-current="page"{% endif %}><svg class="ic"><use href="#i-users"/></svg><span>Команди</span></a>
+      <a href="{% url 'notifications' %}"{% if nav_view == 'notifications' %} class="active" aria-current="page"{% endif %}><svg class="ic"><use href="#i-bell"/></svg><span>Повідомлення</span><span class="count" id="notif-count"{% if not unread_count %} hidden{% endif %}>{{ unread_count }}</span></a>
     </nav>
+    <button type="button" id="sound-toggle" class="sound" aria-pressed="true">
+      <svg class="ic on"><use href="#i-volume"/></svg><svg class="ic off"><use href="#i-volume-off"/></svg>
+      <span id="sound-label">Звук: увімкнено</span>
+    </button>
     <div class="me">
-      <span>{{ user.display_name }}</span>
-      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link">Вийти</button></form>
+      <span class="avatar" aria-hidden="true">{{ user.display_name|slice:":1"|upper }}</span>
+      <div class="me-info">
+        <span class="me-name">{{ user.display_name }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout">Вийти</button></form>
+      </div>
     </div>
   </aside>
   <main class="main">
-    {% for m in messages %}<div class="flash {{ m.tags }}">{{ m }}</div>{% endfor %}
+    {# Якщо JS працює, ці повідомлення перетворюються на спливайки (див. app.js) #}
+    {% for m in messages %}<div class="flash {{ m.tags }}" role="status">{{ m }}</div>{% endfor %}
     {% block content %}{% endblock %}
   </main>
 </div>
+{% endwith %}
 {% else %}
 <main class="auth">{% block auth %}{% endblock %}</main>
+{% endif %}
+
+{% if user.is_authenticated %}
+<dialog id="confirm" class="modal" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+  <form method="dialog" class="modal-box">
+    <div class="modal-icon"><svg class="ic"><use href="#i-alert"/></svg></div>
+    <h2 id="confirm-title">Підтвердьте дію</h2>
+    <p id="confirm-text"></p>
+    <div class="modal-actions">
+      <button value="cancel" class="btn ghost" autofocus>Скасувати</button>
+      <button value="ok" class="btn" id="confirm-ok">Підтвердити</button>
+    </div>
+  </form>
+</dialog>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/notifications.js' %}"></script>
 {% endif %}
 {% block scripts %}{% endblock %}
 </body>

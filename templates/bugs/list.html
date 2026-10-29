@@ -1,30 +1,62 @@
 {% extends "base.html" %}
 {% block title %}Баги{% endblock %}
 {% block content %}
-<header class="head"><h1>Баги</h1><a class="btn" href="{% url 'bug_create' %}">+ Новий баг</a></header>
-<form method="get" class="filters">
-  <select name="team" onchange="this.form.submit()">
-    <option value="">Усі команди</option>
-    {% for t in teams %}<option value="{{ t.pk }}" {% if f.team == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
-  </select>
-  <select name="status" onchange="this.form.submit()">
-    <option value="">Будь-який статус</option>
-    {% for v, l in statuses %}<option value="{{ v }}" {% if f.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
-  </select>
-  {% if f.scope %}<input type="hidden" name="scope" value="{{ f.scope }}">{% endif %}
-</form>
-<div class="card table-wrap"><table>
-  <tr><th>№</th><th>Баг</th><th>Зона</th><th>Важливість</th><th>Статус</th><th>Знайшов</th><th>Відповідальний</th></tr>
-  {% for b in bugs %}
-  <tr>
-    <td><a class="code" href="{{ b.get_absolute_url }}">{{ b.code }}</a></td>
-    <td><a href="{{ b.get_absolute_url }}">{{ b.title }}</a><div class="muted small">{{ b.team.name }}</div></td>
-    <td>{{ b.get_area_display }}</td>
-    <td><span class="badge sev-{{ b.severity }}">{{ b.get_severity_display }}</span></td>
-    <td><span class="badge st-{{ b.status }}">{{ b.get_status_display }}</span></td>
-    <td>{{ b.reporter.display_name }}</td>
-    <td>{{ b.assignee.display_name|default:"—" }}</td>
-  </tr>
-  {% empty %}<tr><td colspan="7" class="muted">Багів не знайдено 🎉</td></tr>{% endfor %}
-</table></div>
+<header class="head">
+  <div><h1>Баги</h1><p class="sub">Знайдено: <b id="list-count">{{ bugs|length }}</b></p></div>
+  <a class="btn" href="{% url 'bug_create' %}"><svg class="ic"><use href="#i-plus"/></svg>Новий баг</a>
+</header>
+
+<div class="page-grid">
+  <div class="page-main">
+    <form method="get" class="filters">
+      <label class="search"><svg class="ic"><use href="#i-search"/></svg>
+        <input type="search" name="q" value="{{ f.q }}" placeholder="Пошук: назва, кроки, коментарі, #тег, BUG-12" aria-label="Пошук"></label>
+      <select name="team" onchange="this.form.submit()" aria-label="Команда">
+        <option value="">Усі команди</option>
+        {% for t in teams %}<option value="{{ t.pk }}" {% if f.team == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()" aria-label="Статус">
+        <option value="">Будь-який статус</option>
+        {% for v, l in statuses %}<option value="{{ v }}" {% if f.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+      <select name="tag" onchange="this.form.submit()" aria-label="Тег">
+        <option value="">Усі теги</option>
+        {% for t in all_tags %}<option value="{{ t }}" {% if f.tag == t %}selected{% endif %}>#{{ t }}</option>{% endfor %}
+      </select>
+      {% if f.scope %}<input type="hidden" name="scope" value="{{ f.scope }}">{% endif %}
+      <button class="btn">Шукати</button>
+      {% if f.q or f.team or f.status or f.tag %}<a class="btn ghost" href="?{% if f.scope %}scope={{ f.scope|urlencode }}{% endif %}">Скинути</a>{% endif %}
+    </form>
+
+    <div class="card table-wrap"><table class="bugs" id="bug-table">
+      <thead><tr><th>№</th><th>Баг</th><th>Зона</th><th>Важливість</th><th>Статус</th><th>Знайшов</th><th>Відповідальний</th><th class="row-actions"><span class="sr-only">Дії</span></th></tr></thead>
+      <tbody>
+      {% for b in bugs %}
+      <tr data-bug="{{ b.pk }}">
+        <td class="nowrap"><a class="code" href="{{ b.get_absolute_url }}">{{ b.code }}</a></td>
+        <td class="title"><a class="t" href="{{ b.get_absolute_url }}">{{ b.title }}</a>
+          <div class="meta"><span>{{ b.team.name }}</span>
+            {% for t in b.tags.all %}<a class="chip" href="?{% if base_qs %}{{ base_qs }}&amp;{% endif %}tag={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}
+          </div></td>
+        <td>{{ b.get_area_display }}</td>
+        <td><span class="badge sev-{{ b.severity }}">{{ b.get_severity_display }}</span></td>
+        <td><span class="badge st-{{ b.status }}">{{ b.get_status_display }}</span></td>
+        <td>{{ b.reporter.display_name }}</td>
+        <td>{{ b.assignee.display_name|default:"—" }}</td>
+        <td class="row-actions">
+          {% if b.can_delete %}
+          <button type="button" class="icon-btn danger" data-delete-url="{% url 'bug_delete' b.pk %}" data-code="{{ b.code }}" data-title="{{ b.title }}" title="Видалити баг" aria-label="Видалити {{ b.code }}"><svg class="ic"><use href="#i-trash"/></svg></button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="empty-row"{% if bugs %} hidden{% endif %}><td colspan="8"><div class="empty"><b>Багів не знайдено</b><span>Спробуйте змінити фільтри або створіть новий баг.</span></div></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <aside class="rail" id="rail" data-url="{% url 'bug_panel' %}" aria-label="Зведення">
+    <div class="rail-body" id="rail-body">{% include "bugs/_panel.html" %}</div>
+  </aside>
+</div>
 {% endblock %}

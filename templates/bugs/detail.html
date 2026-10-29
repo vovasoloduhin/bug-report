@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ bug.code }}{% endblock %}
 {% block content %}
+<a class="crumb" href="{% url 'bug_list' %}"><svg class="ic"><use href="#i-back"/></svg>Усі баги</a>
 <header class="head">
   <div><span class="code big">{{ bug.code }}</span><h1>{{ bug.title }}</h1></div>
-  <div><span class="badge sev-{{ bug.severity }}">{{ bug.get_severity_display }}</span>
-       <span class="badge st-{{ bug.status }}">{{ bug.get_status_display }}</span></div>
+  <div class="head-actions">
+    <span class="badge sev-{{ bug.severity }}">{{ bug.get_severity_display }}</span>
+    <span class="badge st-{{ bug.status }}">{{ bug.get_status_display }}</span>
+    {% if can_delete %}
+    <form method="post" action="{% url 'bug_delete' bug.pk %}" data-confirm="«{{ bug.title }}» буде видалено разом із коментарями, історією та вкладеннями. Цю дію неможливо скасувати." data-confirm-title="Видалити {{ bug.code }}?" data-confirm-ok="Видалити" data-confirm-danger>{% csrf_token %}
+      <button class="btn danger-ghost sm"><svg class="ic"><use href="#i-trash"/></svg>Видалити</button>
+    </form>
+    {% endif %}
+  </div>
 </header>
 <div class="grid">
   <div class="col">
@@ -18,7 +26,7 @@
     <div class="files">
     {% for a in bug.attachments.all %}
       {% if a.is_image %}<a class="thumb" href="{% url 'attachment' a.pk %}" target="_blank"><img src="{% url 'attachment' a.pk %}" alt="{{ a.filename }}"></a>
-      {% else %}<a class="filelink" href="{% url 'attachment' a.pk %}">📎 {{ a.filename }}</a>{% endif %}
+      {% else %}<a class="filelink" href="{% url 'attachment' a.pk %}"><svg class="ic"><use href="#i-clip"/></svg>{{ a.filename }}</a>{% endif %}
     {% empty %}<span class="muted">Немає вкладень</span>{% endfor %}
     </div>
     <form method="post" enctype="multipart/form-data" class="upload-row">{% csrf_token %}
@@ -38,17 +46,18 @@
       {% endif %}
     {% empty %}<li class="muted">Поки порожньо</li>{% endfor %}
     </ul>
-    <form method="post">{% csrf_token %}<input type="hidden" name="comment" value="1">{{ cform.as_div }}<button class="btn">Додати коментар</button></form>
+    <form method="post" class="form">{% csrf_token %}<input type="hidden" name="comment" value="1">{{ cform.as_div }}<button class="btn">Додати коментар</button></form>
   </section>
   </div>
-  <aside class="card">
+  <aside class="card side-card">
     <dl>
       <dt>Команда</dt><dd>{{ bug.team.name }}</dd>
       <dt>Зона</dt><dd>{{ bug.get_area_display }}</dd>
       <dt>Знайшов</dt><dd>{{ bug.reporter.display_name }}</dd>
       <dt>Створено</dt><dd>{{ bug.created_at|date:"d.m.Y H:i" }}</dd>
+      <dt>Теги</dt><dd>{% for t in bug.tags.all %}<a class="chip" href="{% url 'bug_list' %}?tag={{ t.name|urlencode }}">#{{ t.name }}</a> {% empty %}<span class="muted">—</span>{% endfor %}</dd>
     </dl>
-    <form method="post">{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button></form>
+    <form method="post" class="form">{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button></form>
   </aside>
 </div>
 {% endblock %}

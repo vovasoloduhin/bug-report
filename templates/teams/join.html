@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Запрошення в команду{% endblock %}
+{% block content %}
+<div class="card join">
+  {% if invalid %}
+    <h1>Посилання не діє</h1>
+    <p class="muted">Запрошення в команду «{{ invite.team.name }}» скасовано, прострочено або вже використано максимальну кількість разів. Попросіть нове посилання в людини, яка вас запрошувала.</p>
+    <a class="btn" href="{% url 'bug_list' %}">На головну</a>
+  {% else %}
+    <h1>Запрошення в команду «{{ invite.team.name }}»</h1>
+    {% if invite.team.description %}<p class="muted">{{ invite.team.description }}</p>{% endif %}
+    <p>Запросив(ла): <b>{{ invite.created_by.display_name }}</b><br>Ваша зона відповідальності: <span class="badge">{{ invite.get_area_display }}</span></p>
+    <form method="post">{% csrf_token %}<button class="btn">Приєднатися до команди</button></form>
+  {% endif %}
+</div>
+{% endblock %}

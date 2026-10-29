@@ -1,16 +1,75 @@
 {% extends "base.html" %}
 {% block title %}{{ team.name }}{% endblock %}
 {% block content %}
-<header class="head"><div><h1>{{ team.name }}</h1><p class="muted">{{ team.description }}</p></div></header>
-<div class="card table-wrap"><table>
-  <tr><th>Учасник</th><th>Відповідає за</th><th>Знайшов багів</th><th>Відкритих на ньому</th></tr>
+<a class="crumb" href="{% url 'team_list' %}"><svg class="ic"><use href="#i-back"/></svg>Усі команди</a>
+<header class="head">
+  <div><h1>{{ team.name }}</h1>{% if team.description %}<p class="sub">{{ team.description }}</p>{% endif %}</div>
+  {% if not me.is_owner %}
+  <form method="post" action="{% url 'member_remove' team.pk me.pk %}" data-confirm="Ви більше не бачитимете баги цієї команди, доки вас не запросять знову." data-confirm-title="Вийти з команди?" data-confirm-ok="Вийти" data-confirm-danger>{% csrf_token %}<button class="btn danger-ghost">Вийти з команди</button></form>
+  {% endif %}
+</header>
+
+<div class="card table-wrap allow-pop"><table>
+  <thead><tr><th>Учасник</th><th>Відповідає за</th><th>Права</th><th>Знайшов</th><th>Відкритих</th>{% if me.perm_manage %}<th></th>{% endif %}</tr></thead>
+  <tbody>
   {% for r in rows %}
-  <tr><td>{{ r.m.user.display_name }}</td><td><span class="badge">{{ r.m.get_area_display }}</span></td><td>{{ r.found }}</td><td>{{ r.open }}</td></tr>
+  <tr>
+    <td>{{ r.m.user.display_name }}{% if r.m.is_owner %} <span class="badge perm">Власник</span>{% endif %}</td>
+    <td><span class="badge">{{ r.m.get_area_display }}</span></td>
+    <td>
+      {% if r.m.perm_manage %}<span class="badge perm">Керує складом</span>{% endif %}
+      {% if r.m.perm_close %}<span class="badge perm">Закриває баги</span>{% endif %}
+      {% if not r.m.perm_manage and not r.m.perm_close %}<span class="muted">—</span>{% endif %}
+    </td>
+    <td>{{ r.found }}</td><td>{{ r.open }}</td>
+    {% if me.perm_manage %}
+    <td class="actions">
+      {% if r.can_edit %}
+      <details><summary>Змінити</summary>
+        <form method="post" action="{% url 'member_update' team.pk r.m.pk %}" class="member-form">{% csrf_token %}
+          <label>Зона {{ r.form.area }}</label>
+          {% if "can_close_bugs" in r.form.fields %}<label class="check">{{ r.form.can_close_bugs }} Може закривати баги</label>{% endif %}
+          {% if "can_manage_members" in r.form.fields %}<label class="check">{{ r.form.can_manage_members }} Може керувати складом</label>{% endif %}
+          <button class="btn">Зберегти</button>
+        </form>
+      </details>
+      {% endif %}
+      {% if r.can_remove %}
+      <form method="post" action="{% url 'member_remove' team.pk r.m.pk %}" data-confirm="{{ r.m.user.display_name }} втратить доступ до багів команди. Баги, призначені на цю людину, залишаться без відповідального." data-confirm-title="Видалити учасника?" data-confirm-ok="Видалити" data-confirm-danger>{% csrf_token %}<button class="link danger-link">Видалити</button></form>
+      {% endif %}
+    </td>
+    {% endif %}
+  </tr>
   {% endfor %}
+  </tbody>
 </table></div>
-{% if is_owner %}
+
+{% if me.perm_manage %}
+<div class="split">
+<section class="card">
+  <h3>Запросити за посиланням</h3>
+  <p class="muted small">Створіть посилання й надішліть людині — їй не потрібно вводити логін, достатньо відкрити його (за потреби — зареєструватися) й натиснути «Приєднатися».</p>
+  <form method="post" action="{% url 'invite_create' team.pk %}" class="form">{% csrf_token %}{{ invite_form.as_div }}<button class="btn">Створити посилання</button></form>
+  {% for i in invites %}
+  <div class="invite">
+    <div class="invite-url">
+      <input type="text" readonly value="{{ i.url }}" id="inv{{ i.obj.pk }}">
+      <button type="button" class="btn" data-copy="inv{{ i.obj.pk }}">Копіювати</button>
+    </div>
+    <div class="muted small">
+      Зона: {{ i.obj.get_area_display }} ·
+      {% if i.obj.expires_at %}діє до {{ i.obj.expires_at|date:"d.m.Y H:i" }}{% else %}безстрокове{% endif %} ·
+      використано {{ i.obj.uses }}{% if i.obj.max_uses %} з {{ i.obj.max_uses }}{% endif %}
+      <form method="post" action="{% url 'invite_revoke' team.pk i.obj.pk %}" class="inline">{% csrf_token %}<button class="link">Скасувати</button></form>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
 <form method="post" action="{% url 'add_member' team.pk %}" class="card form">
-  <h3>Додати учасника / змінити зону</h3>{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button>
+  <h3>Додати за логіном / змінити зону</h3>{% csrf_token %}{{ form.as_div }}<button class="btn">Зберегти</button>
 </form>
+</div>
 {% endif %}
 {% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/team.js' %}"></script>{% endblock %}

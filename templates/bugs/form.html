@@ -1,13 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Новий баг{% endblock %}
 {% block content %}
-<header class="head"><h1>Новий баг</h1></header>
-<form method="post" class="card form" id="bug-form" enctype="multipart/form-data" data-suggest="{% url 'suggest_assignee' %}">
-  {% csrf_token %}{{ form.as_div }}
-  <div class="upload"><label>Скріншоти / файли</label>
-    <input type="file" name="files" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log">
-    <span class="helptext">До 5 МБ кожен: png, jpg, gif, webp, pdf, txt, log</span></div>
-  <button class="btn">Створити і повідомити відповідального</button>
-</form>
+<a class="crumb" href="{% url 'bug_list' %}"><svg class="ic"><use href="#i-back"/></svg>Усі баги</a>
+<header class="head"><div><h1>Новий баг</h1><p class="sub">Опишіть проблему так, щоб її можна було відтворити за хвилину.</p></div></header>
+<div class="form-layout">
+  <form method="post" class="card form" id="bug-form" enctype="multipart/form-data" data-suggest="{% url 'suggest_assignee' %}" data-tags="{% url 'tag_suggest' %}">
+    {% csrf_token %}{{ form.as_div }}
+    <div class="upload"><label>Скріншоти / файли</label>
+      <input type="file" name="files" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log">
+      <span class="helptext">До 5 МБ кожен: png, jpg, gif, webp, pdf, txt, log</span></div>
+    <button class="btn">Створити і повідомити відповідального</button>
+  </form>
+  <aside class="card tips">
+    <h3>Як описати баг</h3>
+    <ol>
+      <li><b>Назва.</b> Одне речення: що саме не працює.</li>
+      <li><b>Кроки.</b> Пронумеруйте дії, які призводять до проблеми.</li>
+      <li><b>Очікувано і фактично.</b> Що мало статися і що сталося насправді.</li>
+      <li><b>Скріншот чи лог.</b> Один знімок часто замінює абзац тексту.</li>
+      <li><b>Зона й теги.</b> За зоною система сама призначить відповідального, а теги допоможуть знайти баг пізніше.</li>
+    </ol>
+  </aside>
+</div>
 {% endblock %}
 {% block scripts %}{% load static %}<script src="{% static 'js/bug_form.js' %}"></script>{% endblock %}

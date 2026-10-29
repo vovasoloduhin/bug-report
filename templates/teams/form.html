@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Нова команда{% endblock %}
 {% block content %}
-<header class="head"><h1>Нова команда</h1></header>
+<a class="crumb" href="{% url 'team_list' %}"><svg class="ic"><use href="#i-back"/></svg>Усі команди</a>
+<header class="head"><div><h1>Нова команда</h1><p class="sub">Ви станете власником і матимете всі права.</p></div></header>
 <form method="post" class="card form">{% csrf_token %}{{ form.as_div }}<button class="btn">Створити</button></form>
 {% endblock %}
