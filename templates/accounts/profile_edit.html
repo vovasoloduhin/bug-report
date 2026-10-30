@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Редагування профілю{% endblock %}
+{% block content %}
+<a class="crumb" href="{% url 'profile' user.pk %}"><svg class="ic"><use href="#i-back"/></svg>Мій профіль</a>
+<header class="head"><div><h1>Редагування профілю</h1><p class="sub">Аватарку побачать усі, хто з вами в одній команді.</p></div></header>
+
+<form method="post" enctype="multipart/form-data" class="card form profile-form">{% csrf_token %}
+  <div class="avatar-edit">
+    <span id="avatar-preview" class="avatar lg" data-initial="{{ user.initial }}">{% if prof.avatar_url %}<img src="{{ prof.avatar_url }}" alt="">{% else %}{{ user.initial }}{% endif %}</span>
+    <div class="avatar-edit-fields">
+      <label for="{{ pform.avatar.id_for_label }}">{{ pform.avatar.label }}</label>
+      {{ pform.avatar.errors }}{{ pform.avatar }}
+      <p class="muted small">{{ pform.avatar.help_text }}</p>
+      {% if prof.avatar %}<label class="check">{{ pform.remove_avatar }} {{ pform.remove_avatar.label }}</label>{% endif %}
+    </div>
+  </div>
+
+  {{ uform.as_div }}
+  <div>{{ pform.bio.label_tag }}{{ pform.bio.errors }}{{ pform.bio }}</div>
+
+  <div class="form-actions">
+    <button class="btn">Зберегти</button>
+    <a class="btn ghost" href="{% url 'profile' user.pk %}">Скасувати</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/profile.js' %}"></script>{% endblock %}

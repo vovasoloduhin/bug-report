@@ -1,0 +1,1 @@
+{# Аватарка + ім'я з посиланням на профіль. Використання: include "accounts/_user.html" with u=користувач #}<a class="uchip" href="{% url 'profile' u.pk %}">{% include "accounts/_avatar.html" with u=u size="xs" %}<span>{{ u.display_name }}</span></a>

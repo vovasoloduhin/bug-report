@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ target.display_name }}{% endblock %}
+{% block content %}
+<header class="card profile-head">
+  {% include "accounts/_avatar.html" with u=target size="lg" %}
+  <div class="profile-info">
+    <h1>{{ target.display_name }}</h1>
+    <p class="sub">@{{ target.username }}{% if is_me and target.email %} · {{ target.email }}{% endif %}</p>
+    {% if prof.bio %}<p class="pre profile-bio">{{ prof.bio }}</p>{% endif %}
+    <div class="profile-meta">
+      <span class="muted small">З нами з {{ target.date_joined|date:"d.m.Y" }}</span>
+      {% for m in s.teams %}<span class="badge" title="{{ m.team.name }}">{{ m.team.name }} · {{ m.get_area_display }}</span>{% endfor %}
+    </div>
+  </div>
+  {% if is_me %}<a class="btn ghost" href="{% url 'profile_edit' %}">Редагувати профіль</a>{% endif %}
+</header>
+
+<div class="stats stat-grid">
+  <div class="stat"><b>{{ s.found }}</b><span>Знайшов багів</span></div>
+  <div class="stat stat-ok"><b>{{ s.fixed }}</b><span>Виправив</span></div>
+  <div class="stat"><b>{{ s.working }}</b><span>Зараз у роботі</span></div>
+  <div class="stat"><b>{{ s.comments }}</b><span>Коментарів</span></div>
+</div>
+
+<div class="split">
+  <section class="card">
+    <h3>Знайдені баги за важливістю</h3>
+    {% if s.found %}
+    <ul class="sevbars">
+      {% for r in s.severity %}
+      <li><span class="sevbars-label">{{ r.label }}</span>
+        <span class="sevbars-track"><i class="sevbars-fill sevbars-{{ r.key }}" style="width:{{ r.pct }}%"></i></span>
+        <b>{{ r.n }}</b></li>
+      {% endfor %}
+    </ul>
+    <p class="muted small note">З них виправлено або закрито: <b>{{ s.found_done }}</b>, ще відкриті: <b>{{ s.found_open }}</b>.</p>
+    {% else %}<p class="muted small note">Поки що жодного бага не знайдено.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h3>Виправлення</h3>
+    {% if s.fix_rate is not None %}
+    <div class="rate"><b>{{ s.fix_rate }}%</b><span class="muted small">призначених багів уже виправлено або закрито</span></div>
+    <div class="rate-track" role="img" aria-label="Виправлено {{ s.fix_rate }}% призначених багів"><i style="width:{{ s.fix_rate }}%"></i></div>
+    <p class="muted small note">Термінових (висока й критична важливість) виправлено: <b>{{ s.fixed_critical }}</b>.</p>
+    {% else %}<p class="muted small note">Багів, призначених на цю людину, поки немає.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <div class="rail-title"><h3>Останні знайдені</h3>
+      {% if s.found %}<a class="small accent-link" href="{% url 'bug_list' %}?scope=reported">Усі</a>{% endif %}</div>
+    {% for b in s.recent_found %}
+    <a class="mini" href="{{ b.get_absolute_url }}">
+      <span class="mini-top"><span class="code small">{{ b.code }}</span><span class="badge st-{{ b.status }}">{{ b.get_status_display }}</span></span>
+      <span class="mini-title">{{ b.title }}</span>
+    </a>
+    {% empty %}<p class="muted small note">Порожньо.</p>{% endfor %}
+  </section>
+
+  <section class="card">
+    <div class="rail-title"><h3>Останні виправлені</h3>
+      {% if is_me and s.fixed %}<a class="small accent-link" href="{% url 'bug_list' %}?scope=mine">Мої баги</a>{% endif %}</div>
+    {% for b in s.recent_fixed %}
+    <a class="mini" href="{{ b.get_absolute_url }}">
+      <span class="mini-top"><span class="code small">{{ b.code }}</span><span class="badge sev-{{ b.severity }}">{{ b.get_severity_display }}</span></span>
+      <span class="mini-title">{{ b.title }}</span>
+    </a>
+    {% empty %}<p class="muted small note">Порожньо.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}
