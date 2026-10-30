@@ -4,6 +4,7 @@ MAX_TAGS = 10
 MAX_LEN = 30
 
 def parse_tags(raw):
+    """«UI, #Кнопка; ui» -> ["ui", "кнопка"]: нижній регістр, без #, без дублів."""
     names = []
     for part in re.split(r"[,;\n]", raw or ""):
         name = " ".join(part.strip().lstrip("#").split()).lower()[:MAX_LEN]
