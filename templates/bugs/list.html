@@ -29,10 +29,12 @@
     </form>
 
     <div class="card table-wrap"><table class="bugs" id="bug-table">
-      <thead><tr><th>№</th><th>Баг</th><th>Зона</th><th>Важливість</th><th>Статус</th><th>Знайшов</th><th>Відповідальний</th><th class="row-actions"><span class="sr-only">Дії</span></th></tr></thead>
+      <thead><tr>
+        {% for c in columns %}<th{% if c.dir %} class="sorted" aria-sort="{% if c.dir == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}><a class="sort" href="{{ c.url }}">{{ c.label }}<svg class="ic sort-ic {{ c.dir }}"><use href="#i-sort"/></svg></a></th>{% endfor %}
+        <th class="row-actions"><span class="sr-only">Дії</span></th></tr></thead>
       <tbody>
       {% for b in bugs %}
-      <tr data-bug="{{ b.pk }}">
+      <tr data-bug="{{ b.pk }}" class="row-{{ b.severity }}">
         <td class="nowrap"><a class="code" href="{{ b.get_absolute_url }}">{{ b.code }}</a></td>
         <td class="title"><a class="t" href="{{ b.get_absolute_url }}">{{ b.title }}</a>
           <div class="meta"><span>{{ b.team.name }}</span>
@@ -41,8 +43,8 @@
         <td>{{ b.get_area_display }}</td>
         <td><span class="badge sev-{{ b.severity }}">{{ b.get_severity_display }}</span></td>
         <td><span class="badge st-{{ b.status }}">{{ b.get_status_display }}</span></td>
-        <td>{{ b.reporter.display_name }}</td>
-        <td>{{ b.assignee.display_name|default:"—" }}</td>
+        <td>{% include "accounts/_user.html" with u=b.reporter %}</td>
+        <td>{% if b.assignee %}{% include "accounts/_user.html" with u=b.assignee %}{% else %}—{% endif %}</td>
         <td class="row-actions">
           {% if b.can_delete %}
           <button type="button" class="icon-btn danger" data-delete-url="{% url 'bug_delete' b.pk %}" data-code="{{ b.code }}" data-title="{{ b.title }}" title="Видалити баг" aria-label="Видалити {{ b.code }}"><svg class="ic"><use href="#i-trash"/></svg></button>

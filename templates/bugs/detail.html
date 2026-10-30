@@ -40,9 +40,9 @@
     <ul class="timeline">
     {% for i in timeline %}
       {% if i.kind == "comment" %}
-      <li class="tl-comment"><b>{{ i.author.display_name }}</b> <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span><p class="pre">{{ i.text }}</p></li>
+      <li class="tl-comment">{% include "accounts/_user.html" with u=i.author %} <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span><p class="pre">{{ i.text }}</p></li>
       {% else %}
-      <li class="tl-event"><b>{{ i.actor.display_name }}</b> {{ i.text }} <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span></li>
+      <li class="tl-event">{% include "accounts/_user.html" with u=i.actor %} {{ i.text }} <span class="muted small">{{ i.created_at|date:"d.m.Y H:i" }}</span></li>
       {% endif %}
     {% empty %}<li class="muted">Поки порожньо</li>{% endfor %}
     </ul>
@@ -53,7 +53,7 @@
     <dl>
       <dt>Команда</dt><dd>{{ bug.team.name }}</dd>
       <dt>Зона</dt><dd>{{ bug.get_area_display }}</dd>
-      <dt>Знайшов</dt><dd>{{ bug.reporter.display_name }}</dd>
+      <dt>Знайшов</dt><dd>{% include "accounts/_user.html" with u=bug.reporter %}</dd>
       <dt>Створено</dt><dd>{{ bug.created_at|date:"d.m.Y H:i" }}</dd>
       <dt>Теги</dt><dd>{% for t in bug.tags.all %}<a class="chip" href="{% url 'bug_list' %}?tag={{ t.name|urlencode }}">#{{ t.name }}</a> {% empty %}<span class="muted">—</span>{% endfor %}</dd>
     </dl>

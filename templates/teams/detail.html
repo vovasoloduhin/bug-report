@@ -14,7 +14,7 @@
   <tbody>
   {% for r in rows %}
   <tr>
-    <td>{{ r.m.user.display_name }}{% if r.m.is_owner %} <span class="badge perm">Власник</span>{% endif %}</td>
+    <td>{% include "accounts/_user.html" with u=r.m.user %}{% if r.m.is_owner %} <span class="badge perm">Власник</span>{% endif %}</td>
     <td><span class="badge">{{ r.m.get_area_display }}</span></td>
     <td>
       {% if r.m.perm_manage %}<span class="badge perm">Керує складом</span>{% endif %}
