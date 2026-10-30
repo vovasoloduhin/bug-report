@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from teams.models import Membership, Team
 from .forms import BugForm, BugUpdateForm, CommentForm
-from .models import Attachment, Bug, BugEvent, Comment, Notification, STATUS, Tag
+from .models import Attachment, Bug, BugEvent, Comment, Notification, SEVERITY, STATUS, Tag
 from .tags import set_tags
 
 def notify(user, bug, text, actor):
@@ -37,7 +37,7 @@ def save_attachments(request, bug):
 
 def visible_bugs(user):
     return (Bug.objects.filter(team__memberships__user=user).distinct()
-            .select_related("team", "reporter", "assignee"))
+            .select_related("team", "reporter__profile", "assignee__profile"))
 
 OPEN_STATUSES = ("new", "in_progress")
 
@@ -76,6 +76,19 @@ def panel_context(user):
         "feed": feed[:8],
     }
 
+# Колонки таблиці, за якими можна сортувати: ключ -> (підпис, функція ключа, напрям при першому кліку)
+_SEV = {k: i for i, (k, _) in enumerate(SEVERITY)}
+_ST = {k: i for i, (k, _) in enumerate(STATUS)}
+SORT_COLUMNS = [
+    ("id", "№", lambda b: b.pk, "desc"),
+    ("title", "Баг", lambda b: b.title.lower(), "asc"),
+    ("area", "Зона", lambda b: b.get_area_display(), "asc"),
+    ("severity", "Важливість", lambda b: _SEV.get(b.severity, 0), "desc"),
+    ("status", "Статус", lambda b: _ST.get(b.status, 0), "asc"),
+    ("reporter", "Знайшов", lambda b: b.reporter.display_name.lower(), "asc"),
+    ("assignee", "Відповідальний", lambda b: (b.assignee is None, b.assignee.display_name.lower() if b.assignee else ""), "asc"),
+]
+
 @login_required
 def bug_list(request):
     teams = Team.objects.filter(memberships__user=request.user).distinct()
@@ -100,13 +113,28 @@ def bug_list(request):
     params.pop("tag", None)
     members = {m.team_id: m for m in Membership.objects.filter(user=request.user).select_related("team")}
     bugs = list(bugs)
+    # сортування за клітинкою заголовка (без параметра — найновіші зверху)
+    sort, direction = f.get("sort", ""), f.get("dir", "")
+    columns = []
+    for key, label, keyfunc, first_dir in SORT_COLUMNS:
+        active = key == sort
+        if active:
+            direction = "desc" if direction == "desc" else "asc"
+            bugs.sort(key=keyfunc, reverse=direction == "desc")
+            next_dir = "asc" if direction == "desc" else "desc"
+        else:
+            next_dir = first_dir
+        q = f.copy()
+        q["sort"], q["dir"] = key, next_dir
+        columns.append({"key": key, "label": label, "url": "?" + q.urlencode(),
+                        "dir": direction if active else ""})
     for b in bugs:
         m = members.get(b.team_id)
         b.can_delete = bool(m and can_delete_bug(request.user, b, m))
     return render(request, "bugs/list.html", {
         "bugs": bugs, "f": f, "statuses": STATUS, "teams": teams, "panel": panel_context(request.user),
         "all_tags": Tag.objects.filter(team__in=teams).values_list("name", flat=True).distinct().order_by("name"),
-        "base_qs": params.urlencode(),
+        "base_qs": params.urlencode(), "columns": columns,
     })
 
 @login_required
@@ -173,7 +201,7 @@ def bug_detail(request, pk):
                 notify(bug.reporter, bug, f"Статус {bug.code} змінено на «{bug.get_status_display()}»", request.user)
             return redirect(bug)
     timeline = sorted(
-        list(bug.comments.select_related("author")) + list(bug.events.select_related("actor")),
+        list(bug.comments.select_related("author__profile")) + list(bug.events.select_related("actor__profile")),
         key=lambda i: i.created_at)
     return render(request, "bugs/detail.html", {"bug": bug, "form": form, "cform": cform, "timeline": timeline,
         "can_close": can_close, "can_delete": can_delete})

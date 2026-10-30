@@ -60,7 +60,7 @@ def team_create(request):
 def team_detail(request, pk):
     team, me = _team_and_me(request, pk)
     rows = []
-    for m in team.memberships.select_related("user", "team"):
+    for m in team.memberships.select_related("user__profile", "team"):
         can_edit = _can_edit(me, m)
         rows.append({
             "m": m,
