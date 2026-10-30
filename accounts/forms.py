@@ -9,7 +9,7 @@ from PIL import Image, ImageOps
 from .models import Profile, User
 
 AVATAR_MAX_BYTES = 5 * 1024 * 1024
-AVATAR_MAX_PIXELS = 40_000_000     # захист від «бомб розпакування»
+AVATAR_MAX_PIXELS = 40_000_000
 AVATAR_SIZE = 256
 AVATAR_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
 
@@ -27,8 +27,6 @@ class UserEditForm(forms.ModelForm):
 
 
 def process_avatar(upload):
-    """Квадратна обрізка по центру, 256×256, WEBP. Перекодування прибирає EXIF (геолокацію тощо)
-    і будь-який сторонній вміст усередині файлу."""
     upload.seek(0)
     img = ImageOps.exif_transpose(Image.open(upload)).convert("RGBA")
     img = ImageOps.fit(img, (AVATAR_SIZE, AVATAR_SIZE), Image.LANCZOS)
@@ -56,7 +54,7 @@ class ProfileForm(forms.ModelForm):
             return f
         if f.size > AVATAR_MAX_BYTES:
             raise forms.ValidationError("Файл більший за 5 МБ.")
-        img = f.image  # Django вже відкрив файл через Pillow; якщо це не картинка, помилка виникла раніше
+        img = f.image
         if img.format not in AVATAR_FORMATS:
             raise forms.ValidationError("Підтримуються лише PNG, JPG, WEBP і GIF.")
         if img.width * img.height > AVATAR_MAX_PIXELS:
@@ -79,7 +77,7 @@ class ProfileForm(forms.ModelForm):
             profile.save()
             if replaced and old_name:
                 try:
-                    profile.avatar.storage.delete(old_name)   # старий файл не лишається на диску
+                    profile.avatar.storage.delete(old_name)
                 except OSError:
                     pass
         return profile

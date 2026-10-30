@@ -16,7 +16,6 @@ class User(AbstractUser):
 
     @property
     def avatar_url(self):
-        """Адреса аватарки або "" (тоді шаблон показує першу літеру імені)."""
         try:
             return self.profile.avatar_url
         except Profile.DoesNotExist:
@@ -35,6 +34,5 @@ class Profile(models.Model):
     def avatar_url(self):
         if not self.avatar:
             return ""
-        # ?v=<випадкове ім'я файлу>: після заміни аватарки браузер не покаже стару з кешу
         version = os.path.splitext(os.path.basename(self.avatar.name))[0]
         return f"{reverse('avatar', args=[self.user_id])}?v={version}"

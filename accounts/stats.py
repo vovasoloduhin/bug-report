@@ -4,19 +4,17 @@ from bugs.models import Bug, Comment, SEVERITY
 from teams.models import Membership
 
 OPEN = ("new", "in_progress")
-DONE = ("fixed", "closed")       # «виправлено» і «закрито»; «не буде виправлено» сюди не входить
+DONE = ("fixed", "closed")
 SEV_COLORS = {"low": "low", "medium": "medium", "high": "high", "critical": "critical"}
 
 
 def can_view_profile(viewer, target):
-    """Профіль бачить сам користувач і ті, хто з ним в одній команді."""
     if viewer.pk == target.pk:
         return True
     return Membership.objects.filter(user=target, team__memberships__user=viewer).exists()
 
 
 def profile_stats(viewer, target):
-    """Статистика `target` лише по командах, у яких є `viewer`: чужі команди не показуємо."""
     visible = Bug.objects.filter(team__in=Membership.objects.filter(user=viewer).values("team"))
     found = visible.filter(reporter=target)
     fixed = visible.filter(assignee=target, status__in=DONE)

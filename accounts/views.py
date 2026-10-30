@@ -9,7 +9,6 @@ from .models import Profile, User
 from .stats import can_view_profile, profile_stats
 
 def register(request):
-    # ?next= потрібен, щоб після реєстрації за посиланням-запрошенням повернутися на запрошення
     nxt = request.POST.get("next") or request.GET.get("next") or ""
     form = RegisterForm(request.POST or None)
     if form.is_valid():
@@ -49,7 +48,6 @@ def profile_edit(request):
 
 @login_required
 def avatar(request, pk):
-    """Віддає аватарку лише авторизованим користувачам (папка media/ назовні не відкрита)."""
     prof = get_object_or_404(Profile, user_id=pk)
     if not prof.avatar:
         raise Http404
@@ -58,5 +56,5 @@ def avatar(request, pk):
     except (FileNotFoundError, ValueError):
         raise Http404
     resp = FileResponse(fh, content_type="image/webp")
-    resp["Cache-Control"] = "private, max-age=604800"   # адреса містить ?v=..., тож нова аватарка підтягнеться
+    resp["Cache-Control"] = "private, max-age=604800"
     return resp
