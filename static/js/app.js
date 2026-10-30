@@ -1,3 +1,8 @@
+// Спільні UI-помічники. Усе, що відбувається «без перезавантаження», живе тут:
+//   BT.toast()     — спливаюче вікно в куті екрана
+//   BT.confirm()   — модальне вікно підтвердження (замість вбудованого confirm())
+//   видалення бага — fetch POST, рядок зникає з таблиці, права панель оновлюється
+//   BT.refreshPanel() / BT.refreshList() — «м’яке» оновлення шматків сторінки
 (() => {
   "use strict";
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -15,13 +20,15 @@
     return svg;
   }
 
+  /* ---------- спливайки ---------- */
   function dismiss(box) {
     if (!box || box.classList.contains("leaving")) return;
     box.classList.add("leaving");
     box.addEventListener("animationend", () => box.remove(), { once: true });
-    setTimeout(() => box.remove(), 500);
+    setTimeout(() => box.remove(), 500); // запасний варіант, якщо анімацію вимкнено
   }
 
+  // kind: info | success | error | notify. Текст вставляємо як текст, не як HTML.
   function toast({ text, code, url, kind = "info", timeout = 8000 }) {
     const host = document.getElementById("toasts");
     if (!host) return null;
@@ -49,7 +56,7 @@
 
     box.append(body, close);
     host.append(box);
-
+    // не більше 4 одночасно; ті, що вже зникають (.leaving), не рахуємо — інакше цикл не завершиться
     const alive = () => Array.from(host.children).filter((c) => !c.classList.contains("leaving"));
     while (alive().length > 4) dismiss(alive()[0]);
 
@@ -61,8 +68,10 @@
     return box;
   }
 
+  /* ---------- діалог підтвердження ---------- */
   const dlg = document.getElementById("confirm");
   if (dlg) {
+    // клік по затемненню закриває діалог
     dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close("cancel"); });
   }
 
@@ -81,6 +90,7 @@
     });
   }
 
+  /* ---------- запити на сервер ---------- */
   async function post(url, body) {
     const r = await fetch(url, {
       method: "POST",
@@ -90,7 +100,7 @@
     });
     if (r.redirected) throw new Error("Сесія завершилась — увійдіть знову");
     let data = null;
-    try { data = await r.json(); } catch { }
+    try { data = await r.json(); } catch { /* відповідь не JSON */ }
     if (!r.ok || !data || data.ok === false) throw new Error((data && data.error) || "Помилка " + r.status);
     return data;
   }
@@ -104,11 +114,12 @@
     return r.text();
   }
 
+  /* ---------- м’яке оновлення частин сторінки ---------- */
   async function refreshPanel() {
     const rail = document.getElementById("rail");
     const body = document.getElementById("rail-body");
     if (!rail || !body) return;
-    try { body.innerHTML = await getHtml(rail.dataset.url); } catch {}
+    try { body.innerHTML = await getHtml(rail.dataset.url); } catch { /* спробуємо наступного разу */ }
   }
 
   function syncList() {
@@ -119,6 +130,7 @@
     if (counter) counter.textContent = rows.length;
   }
 
+  // Підтягуємо свіжу версію цієї ж сторінки й міняємо лише тіло таблиці.
   async function refreshList() {
     const tbody = $("#bug-table tbody");
     if (!tbody || (dlg && dlg.open) || $(".is-deleting", tbody)) return;
@@ -133,6 +145,7 @@
     } catch { /* мережа недоступна */ }
   }
 
+  /* ---------- видалення бага зі списку ---------- */
   document.addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-delete-url]");
     if (!btn || btn.disabled) return;
@@ -161,6 +174,7 @@
     }
   });
 
+  /* ---------- форми з підтвердженням (data-confirm) ---------- */
   document.addEventListener("submit", async (e) => {
     const form = e.target;
     if (!(form instanceof HTMLFormElement) || !form.hasAttribute("data-confirm") || form.dataset.confirmed) return;
@@ -174,13 +188,35 @@
     if (yes) { form.dataset.confirmed = "1"; form.submit(); }
   });
 
+  /* ---------- повідомлення Django → спливайки ---------- */
   $$(".flash").forEach((el) => {
     const kind = el.classList.contains("error") ? "error" : el.classList.contains("success") ? "success" : "info";
     if (toast({ text: el.textContent.trim(), kind, timeout: 7000 })) el.remove();
   });
 
+  /* ---------- оновлення при нових сповіщеннях ---------- */
   document.addEventListener("bt:notifications", () => { refreshPanel(); refreshList(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshPanel(); });
+
+  /* ---------- тема ---------- */
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme-toggle");
+  const prefersDark = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  if (!root.dataset.theme) {
+    let saved = null;
+    try { saved = localStorage.getItem("bt_theme"); } catch { /* ігноруємо */ }
+    root.dataset.theme = saved === "dark" || saved === "light" ? saved : (prefersDark && prefersDark.matches ? "dark" : "light");
+  }
+  function renderTheme() {
+    const label = document.getElementById("theme-label");
+    if (label) label.textContent = root.dataset.theme === "dark" ? "Тема: темна" : "Тема: світла";
+  }
+  renderTheme();
+  if (themeBtn) themeBtn.addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("bt_theme", root.dataset.theme); } catch { /* ігноруємо */ }
+    renderTheme();
+  });
 
   window.BT = { toast, confirm: confirmDialog, post, refreshPanel, refreshList };
 })();

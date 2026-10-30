@@ -1,24 +1,30 @@
+// Сповіщення без перезавантаження сторінки.
+// Схема: короткий «polling». Раз на кілька секунд сторінка робить fetch на /notifications/poll/?after=<id>,
+// сервер повертає JSON з новими сповіщеннями, а скрипт малює спливайку, оновлює лічильник і грає звук.
 (() => {
   const body = document.body;
   const pollUrl = body.dataset.poll;
   if (!pollUrl) return;
 
-  const FAST = 5000;
-  const SLOW = 15000;
+  const FAST = 5000;   // вкладка активна
+  const SLOW = 15000;  // вкладка у фоні
   const baseTitle = document.title.replace(/^\(\d+\)\s*/, "");
-  let lastId = parseInt(body.dataset.lastId || "0", 10) || 0;
+  let lastId = parseInt(body.dataset.lastId || "0", 10) || 0; // id останнього вже баченого сповіщення
 
+  /* ---------- звук ---------- */
   const store = {
     get() { try { return localStorage.getItem("bt_sound"); } catch { return null; } },
-    set(v) { try { localStorage.setItem("bt_sound", v); } catch { } },
+    set(v) { try { localStorage.setItem("bt_sound", v); } catch { /* ігноруємо */ } },
   };
   let soundOn = store.get() !== "off";
   let ctx = null;
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (AC) ctx = new AC();
-  } catch { }
+  } catch { /* без звуку */ }
 
+  // Браузери блокують звук, поки користувач не взаємодіяв зі сторінкою:
+  // перший клік/клавіша «розблоковує» його.
   function unlock() {
     if (ctx && ctx.state === "suspended") return ctx.resume().catch(() => {});
     return Promise.resolve();
@@ -48,7 +54,7 @@
   function renderToggle() {
     if (!toggle) return;
     if (toggleLabel) toggleLabel.textContent = soundOn ? "Звук: увімкнено" : "Звук: вимкнено";
-    toggle.setAttribute("aria-pressed", String(soundOn));
+    toggle.setAttribute("aria-pressed", String(soundOn)); // CSS за цим атрибутом показує потрібну іконку
   }
   if (toggle) {
     renderToggle();
@@ -56,10 +62,11 @@
       soundOn = !soundOn;
       store.set(soundOn ? "on" : "off");
       renderToggle();
-      if (soundOn) unlock().then(beep);
+      if (soundOn) unlock().then(beep); // короткий тест при вмиканні
     });
   }
 
+  /* ---------- інтерфейс ---------- */
   const countEl = document.getElementById("notif-count");
   function setUnread(n) {
     if (countEl) { countEl.textContent = n; countEl.hidden = n <= 0; }
@@ -71,6 +78,7 @@
     if (window.BT) window.BT.toast({ code: item.code, text: item.text, url: item.url, kind: "notify", timeout: 10000 });
   }
 
+  // Якщо відкрита сторінка «Повідомлення» — додаємо новий рядок угору списку
   function prependToList(item) {
     const list = document.getElementById("notif-list");
     if (!list) return;
@@ -92,6 +100,7 @@
     list.prepend(a);
   }
 
+  /* ---------- опитування ---------- */
   let timer = null;
   let busy = false;
   let stopped = false;
@@ -108,7 +117,7 @@
       const r = await fetch(`${pollUrl}?after=${lastId}`, {
         credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" },
       });
-      if (r.redirected) { stopped = true; return; }
+      if (r.redirected) { stopped = true; return; } // сесія завершилась — перенаправило на вхід
       if (!r.ok) throw new Error(r.status);
       const data = await r.json();
       data.items.forEach((it) => {
@@ -117,11 +126,12 @@
         prependToList(it);
       });
       if (data.items.length) {
-        beep();
+        beep(); // один сигнал на пачку
+        // повідомляємо решту скриптів: список і права панель підтягнуть свіжі дані
         document.dispatchEvent(new CustomEvent("bt:notifications", { detail: data.items }));
       }
       setUnread(data.unread);
-    } catch {
+    } catch { /* мережа/сервер недоступні — спробуємо ще раз у наступний тик */ }
     finally { busy = false; schedule(); }
   }
 

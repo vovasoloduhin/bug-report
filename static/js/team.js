@@ -1,3 +1,4 @@
+// Кнопка «Копіювати» для посилань-запрошень
 document.querySelectorAll("[data-copy]").forEach((btn) => {
   btn.addEventListener("click", async () => {
     const input = document.getElementById(btn.dataset.copy);
@@ -5,7 +6,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
       await navigator.clipboard.writeText(input.value);
     } catch {
       input.select();
-      document.execCommand("copy");
+      document.execCommand("copy"); // запасний варіант для http без clipboard API
     }
     const old = btn.textContent;
     btn.textContent = "Скопійовано";
