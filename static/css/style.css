@@ -390,3 +390,7 @@ a.me-name:hover{color:var(--accent);text-decoration:underline}
   .profile-head{gap:18px;padding:20px}
   .avatar.lg{width:84px;height:84px;font-size:34px}
 }
+
+/* ---------- API-токени ---------- */
+.token-new{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.token-new input{font-family:"JetBrains Mono",monospace;font-size:13px}

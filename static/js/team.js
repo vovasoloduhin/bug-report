@@ -10,7 +10,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
     }
     const old = btn.textContent;
     btn.textContent = "Скопійовано";
-    if (window.BT) window.BT.toast({ text: "Посилання скопійовано в буфер обміну", kind: "success", timeout: 3000 });
+    if (window.BT) window.BT.toast({ text: "Скопійовано в буфер обміну", kind: "success", timeout: 3000 });
     setTimeout(() => (btn.textContent = old), 1800);
   });
 });
