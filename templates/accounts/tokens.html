@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}API-токени{% endblock %}
+{% block content %}
+<a class="crumb" href="{% url 'profile' user.pk %}"><svg class="ic"><use href="#i-back"/></svg>Мій профіль</a>
+<header class="head"><div><h1>API-токени</h1>
+  <p class="sub">Для підключення Claude (MCP) та скриптів. Токен діє від вашого імені й бачить лише ті баги, що й ви.</p></div></header>
+
+{% if new_token %}
+<section class="card token-new">
+  <h3>Ваш новий токен</h3>
+  <p class="small">Скопіюйте його зараз: пізніше його неможливо буде побачити, у базі зберігається лише хеш.</p>
+  <div class="invite-url">
+    <input type="text" readonly id="new-token" value="{{ new_token }}">
+    <button type="button" class="btn" data-copy="new-token">Копіювати</button>
+  </div>
+</section>
+{% endif %}
+
+<div class="split">
+  <form method="post" class="card form">{% csrf_token %}
+    <h3>Створити токен</h3>
+    {{ form.non_field_errors }}
+    {{ form.as_div }}
+    <button class="btn">Створити</button>
+  </form>
+
+  <section class="card table-wrap">
+    <table>
+      <thead><tr><th>Токен</th><th>Доступ</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+      {% for t in items %}
+      <tr>
+        <td><b>{{ t.name }}</b><div class="muted small"><span class="code small">{{ t.prefix }}…</span>
+          · створено {{ t.created_at|date:"d.m.Y" }}{% if t.last_used_at %} · востаннє {{ t.last_used_at|date:"d.m.Y H:i" }}{% else %} · не використовувався{% endif %}
+          {% if t.expires_at %} · до {{ t.expires_at|date:"d.m.Y" }}{% endif %}</div></td>
+        <td>{{ t.get_scope_display }}</td>
+        <td><span class="badge {% if t.is_active %}perm{% endif %}">{{ t.status_label }}</span></td>
+        <td class="actions">
+          {% if t.is_active %}
+          <form method="post" action="{% url 'token_revoke' t.pk %}" data-confirm="Програми, які використовують цей токен, одразу втратять доступ." data-confirm-title="Відкликати токен?" data-confirm-ok="Відкликати" data-confirm-danger>{% csrf_token %}<button class="link danger-link">Відкликати</button></form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="4"><div class="empty"><b>Токенів ще немає</b><span>Створіть перший, щоб підключити MCP.</span></div></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/team.js' %}"></script>{% endblock %}
