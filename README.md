@@ -1,4 +1,4 @@
-# Bug-Report
+# Bugtracker
 
 ```bash
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
@@ -24,3 +24,28 @@ python manage.py runserver
 4. Для кожного нового елемента скрипт створює DOM-вузол спливайки (`BT.toast` у `static/js/app.js`), додає його в `#toasts` (позиція `fixed` у куті), CSS-анімація показує його, через 10 с або по кліку на хрестик він зникає. Текст вставляється як текст, тому HTML у повідомленнях не виконується.
 5. Далі оновлюється лічильник у меню й заголовок вкладки, грається звук (Web Audio) і генерується подія `bt:notifications`. На неї реагує `app.js`: підтягує HTML правої панелі (`/bugs/panel/`) і тіло таблиці й підміняє їх на місці.
 6. Видалення працює так само: кнопка відкриває діалог `<dialog>`, після підтвердження йде `fetch POST` на `/bugs/<id>/delete/` із заголовками `X-CSRFToken` та `X-Requested-With`, сервер відповідає JSON, рядок зникає з таблиці. Без JS форма на сторінці бага працює як звичайний POST із редіректом.
+
+## API і MCP (підключення Claude)
+Архітектура: `Claude → MCP-сервер (mcp_server/server.py) → REST API (/api/v1/) → bugs/services.py → БД`.
+MCP-сервер сам до бази не ходить: усе проходить через API з вашим токеном, тож діють ті самі права, що й на сайті
+(бачите лише баги своїх команд; «Закрито» / «Не буде виправлено» ставить лише той, кому команда дала право; видалення через API немає).
+
+1. «Мій профіль → API-токени» → створіть токен. Для початку обирайте **«Лише читання»**. Токен показується один раз, у базі лише його хеш. Ліміт: 120 запитів на хвилину на токен.
+2. Встановіть залежності MCP (окремо від сайту): `pip install -r mcp_server/requirements.txt`
+3. Підключіть:
+
+**Claude Code**
+```bash
+claude mcp add bugtracker -e BUGTRACKER_URL=http://127.0.0.1:8000 -e BUGTRACKER_TOKEN=bt_... -- python /шлях/до/проєкту/mcp_server/server.py
+```
+**Claude Desktop** (`claude_desktop_config.json`)
+```json
+{"mcpServers": {"bugtracker": {
+  "command": "python", "args": ["/шлях/до/проєкту/mcp_server/server.py"],
+  "env": {"BUGTRACKER_URL": "http://127.0.0.1:8000", "BUGTRACKER_TOKEN": "bt_..."}}}}
+```
+Інструменти: `whoami`, `list_teams`, `list_bugs`, `get_bug` (читання) та `create_bug`, `add_comment`, `set_status` (потрібен токен із записом).
+Тексти багів і коментарів пишуть люди, тож клієнт може просити підтвердження на запис, і цю підтримку варто залишити ввімкненою.
+
+API напряму: `curl -H "Authorization: Bearer bt_..." "http://127.0.0.1:8000/api/v1/bugs/?scope=mine&status=new"`
+Ендпоінти: `GET me/ teams/ bugs/ bugs/<id>/`, `POST bugs/ bugs/<id>/comments/ bugs/<id>/status/`.

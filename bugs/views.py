@@ -14,9 +14,7 @@ from .forms import BugForm, BugUpdateForm, CommentForm
 from .models import Attachment, Bug, BugEvent, Comment, Notification, SEVERITY, STATUS, Tag
 from .tags import set_tags
 
-def notify(user, bug, text, actor):
-    if user and user != actor:
-        Notification.objects.create(user=user, bug=bug, text=text[:300])
+from .services import add_comment, apply_filters, create_bug, notify, status_changed
 
 ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".txt", ".log"}
 MAX_SIZE = 5 * 1024 * 1024
@@ -94,21 +92,7 @@ def bug_list(request):
     teams = Team.objects.filter(memberships__user=request.user).distinct()
     bugs = visible_bugs(request.user).prefetch_related("tags")
     f = request.GET
-    if f.get("team", "").isdigit(): bugs = bugs.filter(team_id=f["team"])
-    if f.get("status"): bugs = bugs.filter(status=f["status"])
-    if f.get("tag"): bugs = bugs.filter(tags__name=f["tag"])
-    if f.get("scope") == "mine": bugs = bugs.filter(assignee=request.user)
-    if f.get("scope") == "reported": bugs = bugs.filter(reporter=request.user)
-    # пошук: кожне слово має зустрітися (AND), місце — будь-де: назва, кроки, коментарі, теги, номер
-    for term in f.get("q", "").split()[:8]:
-        word = term.lower().lstrip("#")
-        if not word:
-            continue
-        cond = Q(search_text__contains=word)
-        m = re.fullmatch(r"(?:bug-?)?0*(\d{1,9})", word)
-        if m:
-            cond |= Q(pk=int(m.group(1)))
-        bugs = bugs.filter(cond)
+    bugs = apply_filters(bugs, request.user, f)
     params = f.copy()
     params.pop("tag", None)
     members = {m.team_id: m for m in Membership.objects.filter(user=request.user).select_related("team")}
@@ -141,20 +125,8 @@ def bug_list(request):
 def bug_create(request):
     form = BugForm(request.POST or None, user=request.user)
     if form.is_valid():
-        bug = form.save(commit=False)
-        bug.reporter = request.user
-        if not bug.assignee:
-            m = Membership.objects.filter(team=bug.team, area=bug.area).first()
-            bug.assignee = m.user if m else None
-        bug.save()
-        set_tags(bug, form.cleaned_data["tags"])
-        bug.rebuild_search_text()
-        BugEvent.objects.create(bug=bug, actor=request.user, text="створив баг" + (f" і призначив {bug.assignee.display_name}" if bug.assignee else ""))
+        bug = create_bug(request.user, form)
         save_attachments(request, bug)
-        steps = bug.steps if len(bug.steps) < 120 else bug.steps[:120] + "…"
-        notify(bug.assignee, bug,
-               f"{request.user.display_name} знайшов {bug.code} у вашій зоні ({bug.get_area_display()}). Дії: {steps}",
-               request.user)
         return redirect(bug)
     return render(request, "bugs/form.html", {"form": form})
 
@@ -169,12 +141,7 @@ def bug_detail(request, pk):
     if request.method == "POST" and "comment" in request.POST:
         cform = CommentForm(request.POST)
         if cform.is_valid():
-            c = cform.save(commit=False)
-            c.bug, c.author = bug, request.user
-            c.save()
-            bug.rebuild_search_text()
-            for u in {bug.reporter, bug.assignee} - {None}:
-                notify(u, bug, f"{request.user.display_name} прокоментував {bug.code}: {c.text[:100]}", request.user)
+            add_comment(request.user, bug, cform.cleaned_data["text"])
             return redirect(bug)
     elif request.method == "POST" and "upload" in request.POST:
         save_attachments(request, bug)
@@ -196,9 +163,7 @@ def bug_detail(request, pk):
                     text=f"призначив відповідального: {bug.assignee.display_name if bug.assignee else '—'}")
                 notify(bug.assignee, bug, f"Вам призначено {bug.code}: {bug.title}", request.user)
             if bug.status != old_status:
-                BugEvent.objects.create(bug=bug, actor=request.user,
-                    text=f"змінив статус на «{bug.get_status_display()}»")
-                notify(bug.reporter, bug, f"Статус {bug.code} змінено на «{bug.get_status_display()}»", request.user)
+                status_changed(bug, request.user)
             return redirect(bug)
     timeline = sorted(
         list(bug.comments.select_related("author__profile")) + list(bug.events.select_related("actor__profile")),

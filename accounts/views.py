@@ -4,11 +4,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
-from .forms import ProfileForm, RegisterForm, UserEditForm
-from .models import Profile, User
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from .forms import ProfileForm, RegisterForm, TokenForm, UserEditForm
+from .models import ApiToken, Profile, User
 from .stats import can_view_profile, profile_stats
 
 def register(request):
+    # ?next= потрібен, щоб після реєстрації за посиланням-запрошенням повернутися на запрошення
     nxt = request.POST.get("next") or request.GET.get("next") or ""
     form = RegisterForm(request.POST or None)
     if form.is_valid():
@@ -48,6 +51,7 @@ def profile_edit(request):
 
 @login_required
 def avatar(request, pk):
+    """Віддає аватарку лише авторизованим користувачам (папка media/ назовні не відкрита)."""
     prof = get_object_or_404(Profile, user_id=pk)
     if not prof.avatar:
         raise Http404
@@ -56,5 +60,31 @@ def avatar(request, pk):
     except (FileNotFoundError, ValueError):
         raise Http404
     resp = FileResponse(fh, content_type="image/webp")
-    resp["Cache-Control"] = "private, max-age=604800"
+    resp["Cache-Control"] = "private, max-age=604800"   # адреса містить ?v=..., тож нова аватарка підтягнеться
     return resp
+
+@login_required
+def tokens(request):
+    """Токени для API/MCP. Сам токен показуємо лише одразу після створення."""
+    form = TokenForm(request.POST or None)
+    new_token = None
+    active = request.user.api_tokens.filter(revoked_at__isnull=True)
+    if request.method == "POST" and form.is_valid():
+        if sum(t.is_active for t in active) >= ApiToken.MAX_ACTIVE:
+            form.add_error(None, f"Не більше {ApiToken.MAX_ACTIVE} активних токенів. Відкличте непотрібні.")
+        else:
+            _, new_token = ApiToken.issue(request.user, form.cleaned_data["name"],
+                                          form.cleaned_data["scope"], int(form.cleaned_data["days"]))
+            form = TokenForm()
+    return render(request, "accounts/tokens.html", {
+        "form": form, "new_token": new_token, "items": request.user.api_tokens.all()})
+
+@login_required
+@require_POST
+def token_revoke(request, pk):
+    tok = get_object_or_404(ApiToken, pk=pk, user=request.user)
+    if not tok.revoked_at:
+        tok.revoked_at = timezone.now()
+        tok.save(update_fields=["revoked_at"])
+    messages.success(request, f"Токен «{tok.name}» відкликано")
+    return redirect("tokens")

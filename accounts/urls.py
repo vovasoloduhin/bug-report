@@ -6,5 +6,7 @@ urlpatterns = [
     path("profile/edit/", views.profile_edit, name="profile_edit"),
     path("profile/<int:pk>/", views.profile, name="profile"),
     path("avatar/<int:pk>/", views.avatar, name="avatar"),
+    path("tokens/", views.tokens, name="tokens"),
+    path("tokens/<int:pk>/revoke/", views.token_revoke, name="token_revoke"),
     path("", include("django.contrib.auth.urls")),
 ]

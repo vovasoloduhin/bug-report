@@ -4,7 +4,9 @@ from django.dispatch import receiver
 
 from .models import Profile
 
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
+    """Кожен новий користувач (реєстрація, createsuperuser, адмінка) одразу отримує профіль."""
     if created:
         Profile.objects.get_or_create(user=instance)

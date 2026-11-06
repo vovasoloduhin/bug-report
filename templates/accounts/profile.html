@@ -12,7 +12,7 @@
       {% for m in s.teams %}<span class="badge" title="{{ m.team.name }}">{{ m.team.name }} · {{ m.get_area_display }}</span>{% endfor %}
     </div>
   </div>
-  {% if is_me %}<a class="btn ghost" href="{% url 'profile_edit' %}">Редагувати профіль</a>{% endif %}
+  {% if is_me %}<div class="head-actions"><a class="btn ghost" href="{% url 'tokens' %}">API-токени</a><a class="btn ghost" href="{% url 'profile_edit' %}">Редагувати профіль</a></div>{% endif %}
 </header>
 
 <div class="stats stat-grid">
